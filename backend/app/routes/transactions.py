@@ -1,11 +1,13 @@
 from flask import Blueprint, jsonify, request
 
 from app.services.store import next_id, store, utc_now_iso
+from app.middleware.auth import token_required
 
 transactions_bp = Blueprint("transactions", __name__)
 
 
 @transactions_bp.get("")
+@token_required
 def list_transactions():
     txs = store["transactions"]
     tx_type = request.args.get("type")
@@ -21,6 +23,7 @@ def list_transactions():
 
 
 @transactions_bp.post("")
+@token_required
 def create_transaction():
     data = request.get_json(silent=True) or {}
     tx_type = data.get("type")
@@ -54,6 +57,7 @@ def create_transaction():
 
 
 @transactions_bp.put("/<int:transaction_id>")
+@token_required
 def update_transaction(transaction_id: int):
     tx = next((item for item in store["transactions"] if item["id"] == transaction_id), None)
     if not tx:
@@ -69,6 +73,7 @@ def update_transaction(transaction_id: int):
 
 
 @transactions_bp.delete("/<int:transaction_id>")
+@token_required
 def delete_transaction(transaction_id: int):
     idx = next((i for i, item in enumerate(store["transactions"]) if item["id"] == transaction_id), None)
     if idx is None:

@@ -1,11 +1,13 @@
 from flask import Blueprint, jsonify
 
 from app.services.store import store
+from app.middleware.auth import token_required
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
 @dashboard_bp.get("/summary")
+@token_required
 def summary():
     income = sum(tx["amount"] for tx in store["transactions"] if tx["type"] == "income")
     expense = sum(tx["amount"] for tx in store["transactions"] if tx["type"] == "expense")
@@ -19,10 +21,9 @@ def summary():
         by_category[key] = by_category.get(key, 0) + tx["amount"]
 
     return jsonify({
-        "total_income": income,
-        "total_expense": expense,
-        "net_balance": net,
-        "budget_remaining": None,
+        "balance": net,
+        "income": income,
+        "expenses": expense,
         "expenses_by_category": by_category,
         "recent_transactions": store["transactions"][-5:],
     })

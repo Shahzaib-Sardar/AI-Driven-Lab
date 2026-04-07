@@ -1,16 +1,19 @@
 from flask import Blueprint, jsonify, request
 
 from app.services.store import next_id, store
+from app.middleware.auth import token_required
 
 categories_bp = Blueprint("categories", __name__)
 
 
 @categories_bp.get("")
+@token_required
 def list_categories():
     return jsonify({"items": store["categories"]})
 
 
 @categories_bp.post("")
+@token_required
 def create_category():
     data = request.get_json(silent=True) or {}
     name = str(data.get("name", "")).strip()
@@ -25,6 +28,7 @@ def create_category():
 
 
 @categories_bp.put("/<int:category_id>")
+@token_required
 def update_category(category_id: int):
     category = next((item for item in store["categories"] if item["id"] == category_id), None)
     if not category:
@@ -40,6 +44,7 @@ def update_category(category_id: int):
 
 
 @categories_bp.delete("/<int:category_id>")
+@token_required
 def delete_category(category_id: int):
     in_use = any(tx.get("category_id") == category_id for tx in store["transactions"])
     if in_use:
