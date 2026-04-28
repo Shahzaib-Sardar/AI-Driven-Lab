@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api'
+import { useAuth } from '../context/AuthContext'
 import '../styles/auth.css'
 
 export default function Signup() {
@@ -11,6 +12,7 @@ export default function Signup() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login: contextLogin } = useAuth()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -30,8 +32,7 @@ export default function Signup() {
 
     try {
       const response = await api.signup(email, password, fullName)
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('user', JSON.stringify(response.user))
+      contextLogin(response.user, response.token)
       navigate('/dashboard')
     } catch (err) {
       setError(err.message || 'Signup failed')
