@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 
 from app.services.store import next_id, store, utc_now_iso
 from app.middleware.auth import token_required
+from app import socketio
 
 transactions_bp = Blueprint("transactions", __name__)
 
@@ -53,6 +54,11 @@ def create_transaction():
     }
 
     store["transactions"].append(tx)
+    # emit realtime event to connected clients
+    try:
+        socketio.emit('transaction_created', tx, broadcast=True)
+    except Exception:
+        pass
     return jsonify(tx), 201
 
 
@@ -68,6 +74,10 @@ def update_transaction(transaction_id: int):
         if key in data:
             tx[key] = data[key]
     tx["updated_at"] = utc_now_iso()
+    try:
+        socketio.emit('transaction_updated', tx, broadcast=True)
+    except Exception:
+        pass
 
     return jsonify(tx)
 
@@ -80,4 +90,9 @@ def delete_transaction(transaction_id: int):
         return jsonify({"error": "transaction not found"}), 404
 
     deleted = store["transactions"].pop(idx)
+    try:
+        socketio.emit('transaction_deleted', {"id": deleted["id"]}, broadcast=True)
+    except Exception:
+        pass
+
     return jsonify({"message": "deleted", "id": deleted["id"]})
