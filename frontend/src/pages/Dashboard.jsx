@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { io } from 'socket.io-client'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
@@ -29,11 +30,16 @@ const defaultBudgetForm = {
 
 function formatCurrency(value) {
   const amount = Number(value || 0)
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
-  }).format(amount)
+  const curr = (typeof window !== 'undefined' && localStorage.getItem('currency')) || 'USD'
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: String(curr || 'USD'),
+      maximumFractionDigits: 2,
+    }).format(amount)
+  } catch (err) {
+    return String(amount)
+  }
 }
 
 function formatDate(value) {
@@ -99,18 +105,20 @@ export default function Dashboard() {
   const [categories, setCategories] = useState([])
   const [budgets, setBudgets] = useState({})
   const [monthlyReport, setMonthlyReport] = useState(null)
+  const [monthlySummary, setMonthlySummary] = useState(null)
   const [transactionForm, setTransactionForm] = useState(defaultTransactionForm)
   const [categoryForm, setCategoryForm] = useState(defaultCategoryForm)
   const [budgetForm, setBudgetForm] = useState(defaultBudgetForm)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(true)
+  const [generatingSummary, setGeneratingSummary] = useState(false)
   const [savingBudget, setSavingBudget] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [deletingTransactionId, setDeletingTransactionId] = useState(null)
   const [search, setSearch] = useState('')
   const [txTypeFilter, setTxTypeFilter] = useState('all')
-  const { user, logout } = useAuth()
+  const { user, logout, login } = useAuth()
   const navigate = useNavigate()
 
   const categoryMap = useMemo(
@@ -176,6 +184,41 @@ export default function Dashboard() {
       .slice(-6)
   }, [transactions])
 
+  const [currency, setCurrency] = useState(() => {
+    try {
+      const saved = localStorage.getItem('currency')
+      return (user?.currency || saved || 'USD').toUpperCase()
+    } catch (err) {
+      return 'USD'
+    }
+  })
+
+  useEffect(() => {
+    if (user?.currency) {
+      const c = String(user.currency || 'USD').toUpperCase()
+      setCurrency(c)
+      localStorage.setItem('currency', c)
+    }
+  }, [user])
+
+  async function handleCurrencyChange(event) {
+    const newCurrency = String(event.target.value || 'USD').toUpperCase()
+    setCurrency(newCurrency)
+    try {
+      localStorage.setItem('currency', newCurrency)
+      if (user?.id) {
+        await api.setPreferences({ currency: newCurrency })
+        const token = localStorage.getItem('token')
+        const updatedUser = { ...user, currency: newCurrency }
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+        if (token) login(updatedUser, token)
+      }
+      setSuccess(`Currency set to ${newCurrency}`)
+    } catch (err) {
+      setError(err.message || 'Could not set currency')
+    }
+  }
+
   const budgetStatus = useMemo(() => {
     if (!selectedBudget?.overall) return null
 
@@ -224,6 +267,31 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData()
+  }, [])
+
+  // Realtime updates: listen for server-sent events and refresh dashboard
+  useEffect(() => {
+    const socketUrl = import.meta.env.VITE_SOCKET_IO_URL || 'http://localhost:5000'
+    const socket = io(socketUrl)
+
+    socket.on('connect', () => {
+      // console.debug('socket connected')
+    })
+
+    const refresh = () => {
+      loadData().catch(() => {})
+    }
+
+    socket.on('transaction_created', refresh)
+    socket.on('transaction_updated', refresh)
+    socket.on('transaction_deleted', refresh)
+    socket.on('category_created', refresh)
+    socket.on('category_updated', refresh)
+    socket.on('category_deleted', refresh)
+
+    return () => {
+      socket.disconnect()
+    }
   }, [])
 
   async function handleTransactionSubmit(event) {
@@ -315,6 +383,22 @@ export default function Dashboard() {
     }
   }
 
+  async function handleGenerateMonthlySummary() {
+    setError('')
+    setSuccess('')
+    setGeneratingSummary(true)
+
+    try {
+      const result = await api.generateMonthlySummary({ month: currentMonth })
+      setMonthlySummary(result)
+      setSuccess(`AI summary generated for ${monthLabel(result.month || currentMonth)}.`)
+    } catch (err) {
+      setError(err.message || 'Could not generate monthly summary')
+    } finally {
+      setGeneratingSummary(false)
+    }
+  }
+
   function handleLogout() {
     logout()
     navigate('/login')
@@ -345,6 +429,17 @@ export default function Dashboard() {
               <span>{user?.email}</span>
             </div>
           </div>
+          <label style={{ margin: '0 12px' }}>
+            <select value={currency} onChange={handleCurrencyChange} aria-label="Currency selector">
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="JPY">JPY</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+              <option value="PKR">PKR</option>
+            </select>
+          </label>
           <button onClick={handleLogout} className="ghost-button">
             Logout
           </button>
@@ -490,6 +585,51 @@ export default function Dashboard() {
                   Keep logging daily transactions to unlock better trend comparisons and budget forecasting.
                 </p>
               </div>
+
+                <div className="insight-callout ai-summary-callout">
+                  <div className="insight-row ai-summary-header">
+                    <div>
+                      <span>AI monthly summary</span>
+                      <strong>
+                        {monthlySummary
+                          ? `Generated for ${monthLabel(monthlySummary.month || currentMonth)}`
+                          : 'Ask the assistant to draft a spending review'}
+                      </strong>
+                    </div>
+                    <button
+                      type="button"
+                      className="ghost-button compact"
+                      onClick={handleGenerateMonthlySummary}
+                      disabled={generatingSummary}
+                    >
+                      {generatingSummary ? 'Generating...' : 'Generate'}
+                    </button>
+                  </div>
+
+                  {monthlySummary ? (
+                    <div className="ai-summary-body">
+                      <p>{monthlySummary.summary}</p>
+                      <div className="ai-summary-meta">
+                        <span className="pill muted">
+                          {monthlySummary.source === 'llm' ? 'AI generated' : 'Local fallback'}
+                        </span>
+                        <span className="pill muted">{monthLabel(monthlySummary.month || currentMonth)}</span>
+                      </div>
+                      {monthlySummary.recommendations?.length ? (
+                        <ul className="ai-summary-list">
+                          {monthlySummary.recommendations.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p>
+                      Generate a concise monthly finance summary with recommendations based on your current
+                      transaction data.
+                    </p>
+                  )}
+                </div>
             </div>
           </article>
         </section>

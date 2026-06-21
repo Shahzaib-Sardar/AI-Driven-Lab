@@ -34,6 +34,8 @@ async function request(path, options = {}) {
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   signup: (email, password, full_name) => request('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, full_name }) }),
+  getPreferences: () => request('/auth/preferences'),
+  setPreferences: (payload) => request('/auth/preferences', { method: 'POST', body: JSON.stringify(payload) }),
   getSummary: () => request('/dashboard/summary'),
   listTransactions: (params = {}) => request(`/transactions${buildQuery(params)}`),
   createTransaction: (payload) => request('/transactions', { method: 'POST', body: JSON.stringify(payload) }),
@@ -45,4 +47,5 @@ export const api = {
   listBudgets: () => request('/budgets'),
   setBudget: (payload) => request('/budgets', { method: 'POST', body: JSON.stringify(payload) }),
   getMonthlyReport: () => request('/reports/monthly'),
+  generateMonthlySummary: (payload = {}) => request('/reports/ai-summary', { method: 'POST', body: JSON.stringify(payload) }),
 }

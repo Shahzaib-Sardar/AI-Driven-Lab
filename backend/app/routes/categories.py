@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 
 from app.services.store import next_id, store
 from app.middleware.auth import token_required
+from app import socketio
 
 categories_bp = Blueprint("categories", __name__)
 
@@ -24,6 +25,10 @@ def create_category():
 
     category = {"id": next_id(store["categories"]), "name": name, "type": cat_type, "is_default": False}
     store["categories"].append(category)
+    try:
+        socketio.emit('category_created', category, broadcast=True)
+    except Exception:
+        pass
     return jsonify(category), 201
 
 
@@ -41,6 +46,10 @@ def update_category(category_id: int):
         category["type"] = data["type"]
 
     return jsonify(category)
+    try:
+        socketio.emit('category_updated', category, broadcast=True)
+    except Exception:
+        pass
 
 
 @categories_bp.delete("/<int:category_id>")
@@ -55,4 +64,8 @@ def delete_category(category_id: int):
         return jsonify({"error": "category not found"}), 404
 
     deleted = store["categories"].pop(idx)
+    try:
+        socketio.emit('category_deleted', {"id": deleted["id"]}, broadcast=True)
+    except Exception:
+        pass
     return jsonify({"message": "deleted", "id": deleted["id"]})

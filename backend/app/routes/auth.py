@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 
 from app.services.store import next_id, store, utc_now_iso
 from app.services.auth import hash_password, verify_password, generate_token
+from app.middleware.auth import token_required
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -31,6 +32,8 @@ def signup():
         "full_name": full_name,
         "email": email,
         "password_hash": hash_password(password),
+        # default user preference
+        "currency": "USD",
         "created_at": utc_now_iso(),
         "updated_at": utc_now_iso(),
     }
@@ -45,7 +48,8 @@ def signup():
         "user": {
             "id": user["id"],
             "full_name": user["full_name"],
-            "email": user["email"]
+            "email": user["email"],
+            "currency": user.get("currency", "USD")
         }
     }), 201
 
@@ -78,7 +82,8 @@ def login():
         "user": {
             "id": user["id"],
             "full_name": user["full_name"],
-            "email": user["email"]
+            "email": user["email"],
+            "currency": user.get("currency", "USD")
         }
     }), 200
 
@@ -91,4 +96,32 @@ def logout():
 @auth_bp.post("/reset-password")
 def reset_password():
     return jsonify({"message": "password reset flow placeholder"}), 200
+
+
+@auth_bp.get('/preferences')
+@token_required
+def get_preferences():
+    user = next((u for u in store['users'] if u['id'] == request.user_id), None)
+    if not user:
+        return jsonify({"error": "user not found"}), 404
+
+    return jsonify({"currency": user.get('currency', 'USD')})
+
+
+@auth_bp.post('/preferences')
+@token_required
+def set_preferences():
+    data = request.get_json(silent=True) or {}
+    currency = str(data.get('currency', '')).strip().upper()
+    if not currency:
+        return jsonify({"error": "currency is required"}), 400
+
+    user = next((u for u in store['users'] if u['id'] == request.user_id), None)
+    if not user:
+        return jsonify({"error": "user not found"}), 404
+
+    user['currency'] = currency
+    user['updated_at'] = utc_now_iso()
+
+    return jsonify({"currency": user['currency']})
 

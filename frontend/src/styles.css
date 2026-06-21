@@ -578,6 +578,33 @@ label {
   line-height: 1.55;
 }
 
+.ai-summary-body {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.ai-summary-header {
+  margin-bottom: 0.75rem;
+}
+
+.ai-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ai-summary-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.55rem;
+  color: var(--text);
+}
+
+.ai-summary-list li {
+  line-height: 1.5;
+}
+
 .category-list,
 .insight-list {
   display: grid;
