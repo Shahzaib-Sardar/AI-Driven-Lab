@@ -1,0 +1,122 @@
+/* Authentication Pages Styling */
+
+.auth-container {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top left, rgba(31, 122, 92, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(21, 88, 70, 0.16), transparent 26%),
+    linear-gradient(180deg, #eef4f1 0%, #e2ebe6 100%);
+}
+
+.auth-box {
+  width: min(100%, 420px);
+  padding: 2rem;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(16, 35, 29, 0.08);
+  box-shadow: 0 24px 60px rgba(15, 32, 26, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.auth-box h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+  color: #10231d;
+}
+
+.auth-box h2 {
+  margin: 0.35rem 0 1.5rem;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1f7a5c;
+}
+
+.auth-error {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  border-left: 4px solid #b42318;
+  background: rgba(180, 35, 24, 0.08);
+  color: #9e2a1c;
+  font-size: 0.95rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #10231d;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(16, 35, 29, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+  font-size: 0.98rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: rgba(31, 122, 92, 0.45);
+  box-shadow: 0 0 0 4px rgba(31, 122, 92, 0.12);
+}
+
+.form-group input:disabled {
+  background: rgba(16, 35, 29, 0.04);
+  cursor: not-allowed;
+}
+
+form button {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  margin-top: 0.5rem;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1f7a5c, #155846);
+  color: white;
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: 0 14px 34px rgba(21, 88, 70, 0.18);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+form button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-link {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  color: #61756d;
+  font-size: 0.95rem;
+}
+
+.auth-link a {
+  color: #155846;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.auth-link a:hover {
+  text-decoration: underline;
+}

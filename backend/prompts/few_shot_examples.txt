@@ -1,0 +1,9 @@
+Example 1:
+Context: {"month": "2026-06", "income": 3000, "expenses": 2500}
+Summary: "You finished the month with a positive balance. Review subscriptions and reduce dining out."
+Recommendations: ["Review subscriptions", "Cook more meals at home", "Set aside 10% for emergency fund"]
+
+Example 2:
+Context: {"month": "2026-05", "income": 2000, "expenses": 2200}
+Summary: "You spent more than you earned. Prioritize cutting discretionary expenses and build a recovery plan."
+Recommendations: ["Pause non-essential purchases", "Create a 30-day spending freeze", "Identify recurring charges to cancel"]

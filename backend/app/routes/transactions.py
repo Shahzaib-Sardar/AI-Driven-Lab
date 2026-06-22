@@ -1,11 +1,14 @@
 from flask import Blueprint, jsonify, request
 
 from app.services.store import next_id, store, utc_now_iso
+from app.middleware.auth import token_required
+from app import socketio
 
 transactions_bp = Blueprint("transactions", __name__)
 
 
 @transactions_bp.get("")
+@token_required
 def list_transactions():
     txs = store["transactions"]
     tx_type = request.args.get("type")
@@ -21,6 +24,7 @@ def list_transactions():
 
 
 @transactions_bp.post("")
+@token_required
 def create_transaction():
     data = request.get_json(silent=True) or {}
     tx_type = data.get("type")
@@ -50,10 +54,16 @@ def create_transaction():
     }
 
     store["transactions"].append(tx)
+    # emit realtime event to connected clients
+    try:
+        socketio.emit('transaction_created', tx, broadcast=True)
+    except Exception:
+        pass
     return jsonify(tx), 201
 
 
 @transactions_bp.put("/<int:transaction_id>")
+@token_required
 def update_transaction(transaction_id: int):
     tx = next((item for item in store["transactions"] if item["id"] == transaction_id), None)
     if not tx:
@@ -64,15 +74,25 @@ def update_transaction(transaction_id: int):
         if key in data:
             tx[key] = data[key]
     tx["updated_at"] = utc_now_iso()
+    try:
+        socketio.emit('transaction_updated', tx, broadcast=True)
+    except Exception:
+        pass
 
     return jsonify(tx)
 
 
 @transactions_bp.delete("/<int:transaction_id>")
+@token_required
 def delete_transaction(transaction_id: int):
     idx = next((i for i, item in enumerate(store["transactions"]) if item["id"] == transaction_id), None)
     if idx is None:
         return jsonify({"error": "transaction not found"}), 404
 
     deleted = store["transactions"].pop(idx)
+    try:
+        socketio.emit('transaction_deleted', {"id": deleted["id"]}, broadcast=True)
+    except Exception:
+        pass
+
     return jsonify({"message": "deleted", "id": deleted["id"]})
