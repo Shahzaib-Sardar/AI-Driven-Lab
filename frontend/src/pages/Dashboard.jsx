@@ -393,7 +393,7 @@ export default function Dashboard() {
       setMonthlySummary(result)
       setSuccess(`AI summary generated for ${monthLabel(result.month || currentMonth)}.`)
     } catch (err) {
-      setError(err.message || 'Could not generate monthly summary')
+      setError('Unable to generate AI summary. Please try again.')
     } finally {
       setGeneratingSummary(false)
     }
@@ -602,9 +602,17 @@ export default function Dashboard() {
                       onClick={handleGenerateMonthlySummary}
                       disabled={generatingSummary}
                     >
-                      {generatingSummary ? 'Generating...' : 'Generate'}
+                      {generatingSummary
+                        ? 'Generating...'
+                        : monthlySummary
+                        ? 'Regenerate AI Summary'
+                        : 'Generate AI Summary'}
                     </button>
                   </div>
+
+                  {generatingSummary && (
+                    <div className="ai-summary-loading">AI is analyzing your spending patterns...</div>
+                  )}
 
                   {monthlySummary ? (
                     <div className="ai-summary-body">
@@ -622,12 +630,51 @@ export default function Dashboard() {
                           ))}
                         </ul>
                       ) : null}
+
+                      {monthlySummary.rag_sources?.filter(Boolean).length ? (
+                        <div className="ai-summary-rag-section">
+                          <h4>Sources Used</h4>
+                          <ul className="ai-summary-list">
+                            {monthlySummary.rag_sources
+                              .filter(Boolean)
+                              .map((source, index) => (
+                                <li key={`rag-source-${index}`}>{source}</li>
+                              ))}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      {monthlySummary.rag_snippets?.filter(Boolean).length ? (
+                        <div className="ai-summary-rag-section">
+                          <h4>Knowledge Base References</h4>
+                          <div className="ai-snippet-list">
+                            {monthlySummary.rag_snippets
+                              .filter(Boolean)
+                              .map((snippet, index) => (
+                                <div key={`rag-snippet-${index}`} className="ai-snippet-card">
+                                  <p>{snippet}</p>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <p className="ai-summary-disclaimer">
+                        AI-generated financial insights are for informational purposes only and should not be
+                        considered professional financial advice.
+                      </p>
                     </div>
                   ) : (
-                    <p>
-                      Generate a concise monthly finance summary with recommendations based on your current
-                      transaction data.
-                    </p>
+                    <div className="ai-summary-body">
+                      <p>
+                        Generate a concise monthly finance summary with recommendations based on your current
+                        transaction data.
+                      </p>
+                      <p className="ai-summary-disclaimer">
+                        AI-generated financial insights are for informational purposes only and should not be
+                        considered professional financial advice.
+                      </p>
+                    </div>
                   )}
                 </div>
             </div>
