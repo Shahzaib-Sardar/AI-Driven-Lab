@@ -10,7 +10,7 @@ from urllib import request as urlrequest
 
 from app.services.store import store, utc_now_iso
 
-PROMPT_PATH = Path(__file__).resolve().parents[2] / "prompts" / "monthly_spending_summary.txt"
+PROMPT_PATH = Path(__file__).resolve().parents[2] / "prompts" / "monthly_spending_summary_v1.txt"
 
 
 def current_month_key() -> str:
@@ -189,6 +189,25 @@ def _fallback_summary(context: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_openai_summary(context: dict[str, Any]) -> dict[str, Any] | None:
+    # Attempt RAG retrieval and inject into prompt when available
+    retrieved_snippets: list[dict[str, Any]] = []
+    try:
+        from app.services.rag import retrieve
+
+        try:
+            retrieved = retrieve(json.dumps(context), top_k=3)
+            for r in retrieved:
+                retrieved_snippets.append({
+                    "text": r.get("text"),
+                    "source": r.get("metadata", {}).get("source", "unknown"),
+                    "title": r.get("title"),
+                })
+        except Exception:
+            retrieved_snippets = []
+    except Exception:
+        # RAG service not available
+        retrieved_snippets = []
+
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
         return None
@@ -196,7 +215,17 @@ def _call_openai_summary(context: dict[str, Any]) -> dict[str, Any] | None:
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
     base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip().rstrip("/")
     endpoint = f"{base_url}/chat/completions"
+
+    # build prompt and inject retrieved snippets
     prompt = _build_prompt(context)
+    if retrieved_snippets:
+        retrieved_section = "\n\n".join([
+            f"Source: {s['source']}\nTitle: {s.get('title','')}\nText: {s['text']}"
+            for s in retrieved_snippets
+        ])
+        prompt = prompt.replace("{{retrieved_context}}", retrieved_section)
+    else:
+        prompt = prompt.replace("{{retrieved_context}}", "")
 
     payload = {
         "model": model,
@@ -232,6 +261,12 @@ def _call_openai_summary(context: dict[str, Any]) -> dict[str, Any] | None:
         parsed = json.loads(content)
     except (KeyError, IndexError, TypeError, json.JSONDecodeError):
         return None
+
+    # attach retrieved sources if present
+    if retrieved_snippets and isinstance(parsed, dict):
+        parsed.setdefault("rag_sources", [])
+        parsed["rag_sources"].extend([s.get("source") for s in retrieved_snippets if s.get("source")])
+        parsed["rag_snippets"] = [ {"title": s.get("title"), "source": s.get("source"), "text": s.get("text")} for s in retrieved_snippets ]
 
     return parsed if isinstance(parsed, dict) else None
 

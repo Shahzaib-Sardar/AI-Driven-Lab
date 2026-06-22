@@ -1,0 +1,20 @@
+[
+  {
+    "id": "tips-1",
+    "title": "Budgeting Basics",
+    "text": "Set a monthly budget, track expenses weekly, and keep 3-6 months of expenses in an emergency fund. Prioritize high-interest debt for repayment.",
+    "source": "built-in"
+  },
+  {
+    "id": "tips-2",
+    "title": "Saving on Food",
+    "text": "Plan meals, buy in bulk, reduce takeout to save on food. Use a shopping list to avoid impulse buys.",
+    "source": "built-in"
+  },
+  {
+    "id": "tips-3",
+    "title": "Transport Savings",
+    "text": "Combine errands, use public transport or a bike where possible, and review subscriptions for car services you no longer use.",
+    "source": "built-in"
+  }
+]
