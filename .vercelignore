@@ -1,0 +1,13 @@
+backend/
+documents/
+.git/
+.gitignore
+README.md
+AUTHENTICATION.md
+run-tests.bat
+*.test.js
+.vscode/
+.env.local
+*.log
+node_modules/
+dist/
